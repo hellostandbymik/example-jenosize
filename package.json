@@ -1,0 +1,16 @@
+{
+  "name": "jenosize-ai-crm",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm --workspace @crm/api run dev",
+    "dev:web": "npm --workspace @crm/web run dev",
+    "build": "npm --workspace @crm/api run build && npm --workspace @crm/web run build",
+    "test": "npm --workspace @crm/api test",
+    "db:migrate": "npm --workspace @crm/api run db:migrate",
+    "db:seed": "npm --workspace @crm/api run db:seed"
+  },
+  "devDependencies": { "concurrently": "^9.1.2", "typescript": "^5.7.3" }
+}

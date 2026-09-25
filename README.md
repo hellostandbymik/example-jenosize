@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Jenosize AI CRM MVP
 
 Responsive internal CRM demo for a 20-person Commercial team. Built as a small monorepo with Next.js/React, a Node.js API, and PostgreSQL. Includes a conservative AI copilot, LINE OA webhook verification and approval-based outbound drafts.
@@ -75,3 +76,6 @@ The default suite tests deterministic AI fallback, LINE signature validation, du
 
 ## Five-day delivery priorities
 The core vertical slice is functional locally. Priority order for a hosted handover is: provision managed PostgreSQL and API/web hosting; run migrations and seed; configure demo credentials and secrets; connect a LINE OA test account; execute automated and manual QA; record a 3–5 minute walkthrough. Do not expose a public deployment with the sample credentials unchanged.
+=======
+# example-jenosize
+>>>>>>> ae53377eba40cbab2e292b39dbfd1d9ca219ec21

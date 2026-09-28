@@ -14,6 +14,10 @@ Incoming events are authenticated against the exact raw body before parsing. Tex
 
 Add the OA as a friend and send a text. In CRM, open **Contacts** to link an unmapped LINE sender ID to the matching contact. Existing messages are attached when linked. Select that contact on a lead to see its conversation in lead details.
 
+Contacts can be filtered by **All**, **Linked**, or **Not linked**. Each filter is applied before the 200-contact result limit. **Unmapped LINE senders** shows one card per LINE user ID, with a profile name, message count, latest message, and a conversation drawer. The sender history loads 50 messages at a time with an option to load older messages. Non-text messages show their type; media files are not downloaded. Only contacts without a linked LINE user appear in the pairing dropdown.
+
+Profile names are requested through the authenticated CRM API using the server-side channel token. Lookups run independently of message retrieval, with a 5-second timeout and a bounded in-memory cache. If LINE cannot provide a profile, the user ID and conversation remain available. Linked contact details also show the latest 100 messages without requiring a lead.
+
 Inbound webhook reception works independently of `LINE_MODE`. Real outbound sending additionally requires `LINE_CHANNEL_ACCESS_TOKEN` and `LINE_MODE=live`; the existing draft and approval flow still applies. Webhook verification does not send a message to a LINE user.
 
 References: [LINE signature verification](https://developers.line.biz/en/docs/messaging-api/verify-webhook-signature/), [webhook URL verification](https://developers.line.biz/en/docs/messaging-api/verify-webhook-url/), [receiving messages and redelivery](https://developers.line.biz/en/docs/messaging-api/receiving-messages/).

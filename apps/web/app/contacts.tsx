@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import RecordActions from './record-actions';
+import DetailDrawer from './detail-drawer';
 
 type Call = (path: string, options?: RequestInit) => Promise<any>;
 type Contact = { id: string; first_name: string; last_name: string | null; email: string | null; company: string | null; line_user_id: string | null };
@@ -82,14 +83,14 @@ function SenderConversation({ sender, name, call, close }: { sender: Sender; nam
       setMessages(current => [...data.items].reverse().concat(current)); setCursor(data.nextCursor);
     } catch (e) { setError((e as Error).message); } finally { setLoading(false); }
   }
-  return <div className="drawerBackdrop" onClick={close}><aside className="drawer" role="dialog" aria-modal="true" aria-label={`บทสนทนา ${name}`} onClick={e => e.stopPropagation()}>
+  return <div className="drawerBackdrop" onClick={close}><DetailDrawer label={`บทสนทนา ${name}`} close={close}>
     <button className="close" aria-label="ปิดบทสนทนา" onClick={close}>×</button><div className="eyebrow">LINE CONVERSATION</div>
     <h2>{name}</h2><code className="lineUserId">{sender.line_user_id}</code><p className="muted">รวม {sender.message_count} ข้อความจากผู้ส่งคนนี้</p>
     {error && <p className="error" role="alert">{error}</p>}
     {cursor && <button className="softButton full" disabled={loading} onClick={older}>โหลดข้อความก่อนหน้า</button>}
     {loading && <p className="muted" role="status">กำลังโหลดข้อความ…</p>}
     <Conversation messages={messages} />
-  </aside></div>;
+  </DetailDrawer></div>;
 }
 
 export default function Contacts({ call, openLead, onRecordsChanged }: { call: Call; openLead: (id: string) => void; onRecordsChanged?:()=>Promise<void> }) {
@@ -164,17 +165,17 @@ export default function Contacts({ call, openLead, onRecordsChanged }: { call: C
         <button className="softButton contactRefresh" onClick={() => { setPage(1); setReload(current => current + 1); }}>รีเฟรช</button>
       </div>
       <ContactPagination data={pageData} loading={loading} change={setPage} />
-      <form className="newLead contactForm" onSubmit={submit}>
+      <details className="createPanel"><summary>＋ เพิ่ม Contact</summary><form className="newLead contactForm" onSubmit={submit}>
         <input aria-label="ชื่อ Contact" placeholder="ชื่อ" value={first} onChange={e => setFirst(e.target.value)} required />
         <input aria-label="นามสกุล Contact" placeholder="นามสกุล" value={last} onChange={e => setLast(e.target.value)} />
         <input aria-label="อีเมล Contact" placeholder="อีเมล" type="email" value={email} onChange={e => setEmail(e.target.value)} />
         <select aria-label="บริษัทของ Contact" value={companyId} onChange={e => setCompanyId(e.target.value)}><option value="">ไม่ระบุบริษัท</option>{companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-        <button className="softButton">เพิ่ม Contact</button>
-      </form>
+        <button className="primary">บันทึก Contact ใหม่</button>
+      </form></details>
       {message && <p className="muted" role="status">{message}</p>}{loadError && <p className="error" role="alert">{loadError}</p>}
-      <div className="tableWrap"><table><thead><tr><th>CONTACT</th><th>COMPANY</th><th>EMAIL</th><th>LINE</th></tr></thead><tbody>
+      <div className="tableWrap"><table className="recordTable"><thead><tr><th>CONTACT</th><th>COMPANY</th><th>EMAIL</th><th>LINE</th></tr></thead><tbody>
         {items.map(c => <tr key={c.id} role="button" tabIndex={0} aria-label={`ดู Contact ${c.first_name} ${c.last_name || ''}`} onClick={() => openContact(c.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void openContact(c.id); } }}>
-          <td><strong>{c.first_name} {c.last_name}</strong></td><td>{c.company || '—'}</td><td>{c.email || '—'}</td><td><span className={`badge ${c.line_user_id ? 'won' : 'new'}`}>{c.line_user_id ? 'Linked' : 'Not linked'}</span></td>
+          <td data-label="ผู้ติดต่อ"><strong>{c.first_name} {c.last_name}</strong></td><td data-label="บริษัท">{c.company || '—'}</td><td data-label="อีเมล">{c.email || '—'}</td><td data-label="LINE"><span className={`badge ${c.line_user_id ? 'won' : 'new'}`}>{c.line_user_id ? 'Linked' : 'Not linked'}</span></td>
         </tr>)}
         {!items.length && <tr><td colSpan={4} className="empty">{loading ? 'กำลังโหลด Contacts…' : 'ไม่มี Contact ที่ตรงกับตัวกรองนี้'}</td></tr>}
       </tbody></table></div>
@@ -186,13 +187,13 @@ export default function Contacts({ call, openLead, onRecordsChanged }: { call: C
       {!unknown.length && <p className="muted">ไม่มีผู้ส่งที่รอจับคู่</p>}
     </section>
     {selectedSender && <SenderConversation key={selectedSender.line_user_id} sender={selectedSender} name={senderName(selectedSender.line_user_id)} call={call} close={() => setSelectedSender(null)} />}
-    {selected && <div className="drawerBackdrop" onClick={() => setSelected(null)}><aside className="drawer" role="dialog" aria-modal="true" aria-label="รายละเอียด Contact" onClick={e => e.stopPropagation()}>
+    {selected && <div className="drawerBackdrop" onClick={() => setSelected(null)}><DetailDrawer label="รายละเอียด Contact" close={() => setSelected(null)}>
       <button className="close" aria-label="ปิดรายละเอียด Contact" onClick={() => setSelected(null)}>×</button><div className="eyebrow">CONTACT DETAILS</div>
       <h2>{selected.contact.first_name} {selected.contact.last_name}</h2><p className="muted">{[selected.contact.company, selected.contact.title].filter(Boolean).join(' · ') || 'ไม่มีบริษัทหรือชื่อตำแหน่ง'}</p>
       <RecordActions entity="contacts" record={selected.contact} call={call} onChanged={async deleted=>{setPage(1);setReload(current=>current+1);if(deleted)setSelected(null);else await openContact(selected.contact.id);await onRecordsChanged?.();}} />
       <div className="drawerBlock"><p>Email: {selected.contact.email || '—'}</p><p>Phone: {selected.contact.phone || '—'}</p><p>LINE: <span className="lineUserId">{selected.contact.line_user_id || '—'}</span></p></div>
       <div className="drawerBlock"><h3>Conversation</h3><p className="muted">ข้อความล่าสุด 100 รายการของ Contact นี้</p><Conversation messages={[...(selected.messages || [])].reverse()} /></div>
-      <div className="drawerBlock"><h3>Leads ({selected.leads.length})</h3>{selected.leads.length ? <div className="tableWrap"><table><thead><tr><th>LEAD</th><th>STAGE</th><th>VALUE</th></tr></thead><tbody>{selected.leads.map((lead: any) => <tr key={lead.id} role="button" tabIndex={0} onClick={() => { setSelected(null); openLead(lead.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(null); openLead(lead.id); } }}><td><strong>{lead.title}</strong></td><td>{lead.stage}</td><td>{lead.value ? `฿${Number(lead.value).toLocaleString()}` : '—'}</td></tr>)}</tbody></table></div> : <p className="muted">ยังไม่มี Lead ของ Contact นี้</p>}</div>
-    </aside></div>}
+      <div className="drawerBlock"><h3>Leads ({selected.leads.length})</h3>{selected.leads.length ? <div className="tableWrap"><table className="recordTable"><thead><tr><th>LEAD</th><th>STAGE</th><th>VALUE</th></tr></thead><tbody>{selected.leads.map((lead: any) => <tr key={lead.id} role="button" tabIndex={0} onClick={() => { setSelected(null); openLead(lead.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(null); openLead(lead.id); } }}><td data-label="โอกาสขาย"><strong>{lead.title}</strong></td><td data-label="สถานะ">{lead.stage}</td><td data-label="มูลค่า">{lead.value ? `฿${Number(lead.value).toLocaleString()}` : '—'}</td></tr>)}</tbody></table></div> : <p className="muted">ยังไม่มี Lead ของ Contact นี้</p>}</div>
+    </DetailDrawer></div>}
   </>;
 }

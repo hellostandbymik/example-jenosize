@@ -1,0 +1,148 @@
+/* Keep intrinsic form and table widths inside their own layout containers. */
+:root { --muted: #66716b; }
+.eyebrow, .navLabel, .recordTable th { color: #64736b; }
+.main { flex: 1; width: auto; min-width: 0; }
+.topbar, .sectionHead { gap: 16px; flex-wrap: wrap; }
+.sectionHead > div, .topbar > div, .metric, .stageColumn { min-width: 0; }
+.filters { flex-wrap: wrap; max-width: 100%; }
+.filters input { flex: 1 1 200px; min-width: 0; }
+.filters select { max-width: 100%; }
+.newLead { flex-wrap: wrap; }
+.newLead input, .newLead select { flex: 1 1 160px; min-width: 0; max-width: 100%; }
+.newLead select { border: 1px solid var(--line); background: #fff; border-radius: 7px; padding: 10px 11px; color: var(--ink); font-size: 13px; }
+.newLead button { flex-shrink: 0; }
+.createPanel { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 18px; scroll-margin-top: 18px; }
+.createPanel summary { cursor: pointer; color: var(--green); font-size: 13px; font-weight: 600; padding: 13px 15px; }
+.createPanel[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.createPanel .newLead { padding: 0 14px; }
+.tableWrap { max-width: 100%; }
+.recordTable tr[role="button"]:focus-visible { outline-offset: -3px; background: var(--pale); }
+.pipeline { overflow-x: auto; max-width: 100%; padding-bottom: 8px; }
+.leadCard { overflow-wrap: anywhere; }
+.mobileAccount, .pipelineFilters { display: none; }
+button:focus-visible, a:focus-visible, summary:focus-visible, tr:focus-visible {
+  outline: 3px solid #148a69; outline-offset: 3px;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #148a69; outline-offset: 1px; }
+.drawer { height: 100dvh; overscroll-behavior: contain; overflow-wrap: anywhere; }
+.drawer:focus { outline: none; }
+.drawer .close { position: sticky; top: 0; z-index: 1; flex-shrink: 0; }
+.close, .iconButton { min-width: 44px; min-height: 44px; }
+.recordDialog { overscroll-behavior: contain; }
+.recordDialogHead .close { float: none; }
+.recordDialogFooter { flex-wrap: wrap; }
+.recordDialogFooter button { min-height: 44px; }
+body:has(.drawerBackdrop) { overflow: hidden; }
+.contactConversation, .chatMessage { min-width: 0; }
+.lineSenderIdentity h4 { overflow-wrap: anywhere; }
+.loginWrap { min-height: 100dvh; }
+
+@media (max-width: 950px) {
+  .sidebar { width: 170px; }
+  .sidebarBottom { flex-wrap: wrap; }
+  .metric strong { overflow-wrap: anywhere; }
+}
+
+@media (max-width: 650px) {
+  .shell { display: block; min-height: 100dvh; }
+  .sidebar {
+    position: fixed; inset: auto 0 0; z-index: 4; width: 100%;
+    flex-direction: row; align-items: center; gap: 4px;
+    padding: 6px max(8px, env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    border-right: 0; border-top: 1px solid var(--line); background: #fff;
+    box-shadow: 0 -4px 20px #14271e08;
+  }
+  .sidebar .brand, .sidebar .navLabel, .sidebar .sidebarBottom { display: none; }
+  .sidebar .navItem { flex: 1; min-width: 0; min-height: 56px; flex-direction: column; gap: 3px; margin: 0; padding: 6px 2px; font-size: 20px; text-align: center; }
+  .sidebar .navItem span { display: block; flex: initial; font-size: 11px; line-height: 1.4; }
+  .sidebar .navItem b { display: none; }
+  .main { width: 100%; padding: 20px 16px calc(100px + env(safe-area-inset-bottom)); }
+  .topbar { align-items: center; flex-wrap: nowrap; margin-bottom: 20px; gap: 10px; }
+  .topbar .eyebrow { font-size: 9px; letter-spacing: .9px; }
+  .topbar h2 { font-size: 24px; }
+  .topActions { gap: 6px; flex-shrink: 0; }
+  .mobileAccount { display: grid; place-items: center; margin: 0; border: 1px solid var(--line); border-radius: 9px; background: #fff; }
+  .status { display: none; }
+  .primary, .softButton, .dangerButton { min-height: 44px; font-size: 13px; padding: 10px 12px; }
+  input, select, textarea,
+  .filters input, .filters select, .newLead input, .newLead select,
+  .drawer select, .contactPagination select, .lineSenderActions select, .loginCard input {
+    font-size: 16px; min-height: 44px; min-width: 0; max-width: 100%;
+  }
+  .metricGrid { gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 18px; }
+  .metric { padding: 14px 12px; }
+  .metric:nth-child(n + 3) { display: none; }
+  .metric span { font-size: 12px; }
+  .metric strong { font-size: 21px; margin: 8px 0 5px; }
+  .metric small { font-size: 11px; line-height: 1.5; }
+  .contentCard { padding: 18px 14px 12px; border-radius: 14px; }
+  .sectionHead { align-items: stretch; gap: 12px; }
+  .sectionHead h3, .drawerBlock h3 { font-size: 18px; }
+  .sectionHead p { font-size: 13px; line-height: 1.6; }
+  .filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .filters input, .filters select { width: 100%; min-width: 0; }
+  .createPanel summary { min-height: 48px; font-size: 14px; }
+  .newLead { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .newLead input, .newLead select, .newLead button, .contactForm.newLead input { width: 100%; min-width: 0; }
+  .contactLineFilters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .contactLineFilters button { padding: 9px 5px; font-size: 12px; }
+  .contactLineFilters .contactRefresh { grid-column: 1 / -1; margin: 0; }
+  .senderJump { white-space: normal; text-align: center; }
+  .contactPagination { gap: 8px; font-size: 12px; }
+  .contactPagination > div { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; }
+  .contactPagination button { padding: 9px 10px; }
+  .contactPagination select { width: 100%; padding: 8px 4px; font-size: 14px; }
+
+  /* One labeled record card per row, using the same data and click handlers. */
+  .recordTable { display: block; white-space: normal; }
+  .recordTable thead { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .recordTable tbody { display: grid; gap: 12px; }
+  .recordTable tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: #fff; }
+  .recordTable tbody tr:active { background: var(--pale); }
+  .recordTable td { display: block; min-width: 0; padding: 0; border: 0; font-size: 14px; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
+  .recordTable td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+  .recordTable td:first-child { grid-column: 1 / -1; font-size: 16px; }
+  .recordTable td:first-child::before { display: none; }
+  .recordTable td small { font-size: 12px; line-height: 1.5; }
+  .recordTable td[data-label="บริษัท / ผู้ติดต่อ"], .recordTable td[data-label="อีเมล"], .recordTable td[data-label="เว็บไซต์"] { grid-column: 1 / -1; }
+  .recordTable .empty { grid-column: 1 / -1; font-size: 14px; padding: 16px 0; }
+  .recordTable .badge { display: inline-block; font-size: 12px; padding: 5px 10px; }
+
+  .pipelineFilters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; max-width: 100%; padding: 3px 0 12px; margin-bottom: 4px; }
+  .pipelineFilters button { white-space: normal; font-size: 12px; padding: 8px 4px; }
+  .pipelineFilters span { display: block; font-size: 11px; margin-top: 3px; opacity: .8; }
+  .pipeline { grid-template-columns: minmax(0, 1fr); overflow: visible; }
+  .stageColumn[data-active="false"] { display: none; }
+  .stageTitle { font-size: 15px; padding: 8px 4px 16px; }
+  .leadCard { padding: 16px; margin-bottom: 12px; border-radius: 12px; }
+  .leadCard strong { font-size: 16px; }
+  .leadCard small, .leadCard span { font-size: 13px; }
+  .drawer { width: 100%; padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); }
+  .drawer h2 { font-size: 24px; line-height: 1.4; padding-right: 45px; }
+  .drawer > .muted { font-size: 14px; line-height: 1.6; }
+  .drawerBlock { padding: 20px 0; }
+  .drawerBlock > label, .leadFactsGrid dt { font-size: 12px; }
+  .leadFactsGrid dd { font-size: 15px; }
+  .leadFactsNote { font-size: 12px; }
+  .timelineItem, .analysis { font-size: 14px; }
+  .analysis textarea { font-size: 16px; }
+  .recordDialog { max-height: calc(100dvh - 32px); padding: 18px; }
+  .recordFields label { font-size: 13px; }
+  .recordDialogFooter { position: sticky; bottom: -18px; background: #fff; padding: 14px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lineSenderHeader { flex-wrap: wrap; }
+  .lineSenderHeader .badge { font-size: 11px; }
+  .lineSenderActions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .lineSenderActions select { width: 100%; }
+  .lineSenderActions .primary, .lineSenderActions select, .lineSenderActions .softButton { order: initial; }
+  .chatMessage p { font-size: 14px; }
+  .chatMessage small, .chatMessage time { font-size: 11px; }
+  .loginCard { padding: 24px; }
+}
+
+@media (max-width: 360px) {
+  .main { padding-left: 12px; padding-right: 12px; }
+  .topbar h2 { font-size: 22px; }
+  .topbar .eyebrow { font-size: 8px; letter-spacing: .3px; }
+  .topActions .primary { font-size: 12px; padding: 10px; }
+  .metric strong { font-size: 19px; }
+}

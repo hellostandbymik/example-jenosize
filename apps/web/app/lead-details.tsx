@@ -24,8 +24,8 @@ export default function LeadDetails({lead}:{lead:LeadDetails}) {
         <div><dt>ผู้รับผิดชอบ</dt><dd>{lead.owner||empty}</dd></div>
         <div><dt>มูลค่าโอกาสขาย</dt><dd>{value}</dd></div>
         <div><dt>โอกาสปิดการขาย</dt><dd>{lead.probability==null?empty:`${lead.probability}%`}</dd></div>
-        <div className="leadFactWide"><dt>ติดตามครั้งถัดไป</dt><dd>{formatDate(lead.next_follow_up)}</dd></div>
-        <div className="leadFactWide"><dt>เหตุผลที่ขายไม่สำเร็จ</dt><dd>{lead.loss_reason||empty}</dd></div>
+        {!['Won','Lost'].includes(lead.stage)&&<div className="leadFactWide"><dt>ติดตามครั้งถัดไป</dt><dd>{formatDate(lead.next_follow_up)}</dd></div>}
+        {lead.stage==='Lost'&&<div className="leadFactWide"><dt>เหตุผลที่ขายไม่สำเร็จ</dt><dd>{lead.loss_reason||empty}</dd></div>}
         <div><dt>วันที่สร้าง</dt><dd>{formatDate(lead.created_at)}</dd></div>
         <div><dt>แก้ไขล่าสุด</dt><dd>{formatDate(lead.updated_at)}</dd></div>
         <div className="leadFactWide"><dt>รหัส Lead</dt><dd className="leadReference">{lead.id}</dd></div>

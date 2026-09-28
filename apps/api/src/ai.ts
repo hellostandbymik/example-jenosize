@@ -43,7 +43,17 @@ export async function analyzeLead(context: LeadContext): Promise<{ result: Analy
     });
     if (!response.ok) {
       if (response.status===401 || response.status===403) throw new AIError('openai_auth_failed','OpenAI ปฏิเสธ API key หรือสิทธิ์ใช้งาน กรุณาตรวจการตั้งค่า');
-      if (response.status===429) throw new AIError('openai_limit','OpenAI ติดข้อจำกัดการใช้งานหรือเครดิต กรุณาตรวจบัญชีแล้วลองใหม่',429);
+      if (response.status===429) {
+        // Read only known error codes; never forward upstream bodies or credentials.
+        const failure=await response.json().catch(()=>null);
+        const code=failure?.error?.code;
+        if (code==='credit_balance_exhausted') throw new AIError('openai_credits','เครดิต OpenAI API หมด กรุณาเติมเครดิตใน Billing แล้วลองใหม่',429);
+        if (code==='organization_spend_limit_exceeded' || code==='project_spend_limit_exceeded') throw new AIError('openai_spend_limit','บัญชีหรือโปรเจกต์ OpenAI ถึงวงเงินที่ตั้งไว้ กรุณาตรวจ Limits',429);
+        if (code==='organization_usage_limit_exceeded') throw new AIError('openai_usage_limit','บัญชี OpenAI ถึงโควตาที่ได้รับ กรุณาตรวจ Usage limits',429);
+        if (code==='insufficient_quota' || failure?.error?.type==='insufficient_quota') throw new AIError('openai_quota','บัญชี OpenAI API มีเครดิตหรือโควตาไม่เพียงพอ กรุณาตรวจ Billing และ Limits',429);
+        if (code==='rate_limit_exceeded' || code==='slow_down' || failure?.error?.type==='rate_limit_error') throw new AIError('openai_rate_limit','เรียก OpenAI เกินอัตราที่กำหนด กรุณารอสักครู่แล้วลองใหม่',429);
+        throw new AIError('openai_limit','OpenAI ติดข้อจำกัดการใช้งานหรือเครดิต กรุณาตรวจบัญชีแล้วลองใหม่',429);
+      }
       if (response.status===400 || response.status===404) throw new AIError('openai_request_invalid','OpenAI ไม่รองรับการตั้งค่าหรือโมเดลนี้ กรุณาตรวจ AI_MODEL');
       throw new AIError('openai_unavailable','OpenAI ไม่พร้อมใช้งาน กรุณาลองใหม่');
     }

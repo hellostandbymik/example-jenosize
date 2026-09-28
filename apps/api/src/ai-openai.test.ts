@@ -31,6 +31,18 @@ describe('OpenAI analysis',()=>{
     fetchMock.mockResolvedValue(response(invalid));
     await expect(analyzeLead(context)).rejects.toMatchObject({code:'openai_invalid_output'});
   });
+  it.each([
+    ['credit_balance_exhausted','insufficient_quota','openai_credits'],
+    ['organization_spend_limit_exceeded','insufficient_quota','openai_spend_limit'],
+    ['project_spend_limit_exceeded','insufficient_quota','openai_spend_limit'],
+    ['organization_usage_limit_exceeded','insufficient_quota','openai_usage_limit'],
+    ['insufficient_quota','insufficient_quota','openai_quota'],
+    ['rate_limit_exceeded','rate_limit_error','openai_rate_limit'],
+    ['slow_down','rate_limit_error','openai_rate_limit']
+  ])('distinguishes %s from temporary throttling',async(code,type,expected)=>{
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({error:{code,type,message:'private details'}}),{status:429}));
+    await expect(analyzeLead(context)).rejects.toMatchObject({code:expected,status:429});
+  });
   it('rejects malformed JSON',async()=>{
     fetchMock.mockResolvedValue(new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'bad json'}}]})));
     await expect(analyzeLead(context)).rejects.toMatchObject({code:'openai_invalid_output'});

@@ -13,7 +13,7 @@ function formatDate(value:string|null) {
   return Number.isFinite(date.getTime())?date.toLocaleString('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'medium',timeStyle:'short'}):empty;
 }
 
-export default function LeadDetails({lead}:{lead:LeadDetails}) {
+export default function LeadDetails({lead,lineName}:{lead:LeadDetails;lineName:string}) {
   const contact=[lead.first_name,lead.last_name].filter(Boolean).join(' ');
   const value=lead.value==null?empty:new Intl.NumberFormat('th-TH',{style:'currency',currency:'THB',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(lead.value));
   return <>
@@ -40,7 +40,7 @@ export default function LeadDetails({lead}:{lead:LeadDetails}) {
         <div className="leadFactWide"><dt>เว็บไซต์บริษัท</dt><dd>{lead.website||empty}</dd></div>
         <div><dt>อีเมลผู้ติดต่อ</dt><dd>{lead.email||empty}</dd></div>
         <div><dt>โทรศัพท์ผู้ติดต่อ</dt><dd>{lead.phone||empty}</dd></div>
-        <div className="leadFactWide"><dt>LINE User ID</dt><dd className={lead.line_user_id?'leadReference':undefined}>{lead.line_user_id||'ยังไม่ได้จับคู่ LINE'}</dd></div>
+        <div className="leadFactWide"><dt>ชื่อ LINE</dt><dd title={lead.line_user_id||undefined}>{lineName}</dd></div>
       </dl>
     </section>
   </>;

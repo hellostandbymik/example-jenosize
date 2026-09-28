@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import RecordActions from './record-actions';
 import DetailDrawer from './detail-drawer';
+import useLineName from './use-line-name';
 
 type Call = (path: string, options?: RequestInit) => Promise<any>;
 type Contact = { id: string; first_name: string; last_name: string | null; email: string | null; company: string | null; line_user_id: string | null };
@@ -30,9 +31,9 @@ function messageText(content: string | null, type?: string | null) {
   return type ? `[${labels[type] || type}]` : 'ยังไม่มีข้อความ';
 }
 
-function Conversation({ messages }: { messages: ChatMessage[] }) {
+function Conversation({ messages, senderName }: { messages: ChatMessage[]; senderName: string }) {
   return <div className="contactConversation">{messages.map(m => <div className={`chatMessage ${m.direction === 'outbound' ? 'outbound' : ''}`} key={m.id}>
-    <small>{m.direction === 'outbound' ? 'ทีมส่งข้อความ' : 'ผู้ส่ง LINE'}</small>
+    <small>{m.direction === 'outbound' ? 'ทีมส่งข้อความ' : senderName}</small>
     <p>{messageText(m.content, m.message_type)}</p>
     <time dateTime={m.created_at}>{new Date(m.created_at).toLocaleString('th-TH')}</time>
   </div>)}{!messages.length && <p className="muted">ยังไม่มีข้อความสนทนา</p>}</div>;
@@ -89,7 +90,7 @@ function SenderConversation({ sender, name, call, close }: { sender: Sender; nam
     {error && <p className="error" role="alert">{error}</p>}
     {cursor && <button className="softButton full" disabled={loading} onClick={older}>โหลดข้อความก่อนหน้า</button>}
     {loading && <p className="muted" role="status">กำลังโหลดข้อความ…</p>}
-    <Conversation messages={messages} />
+    <Conversation messages={messages} senderName={name} />
   </DetailDrawer></div>;
 }
 
@@ -107,6 +108,7 @@ export default function Contacts({ call, openLead, onRecordsChanged }: { call: C
   const [loadError, setLoadError] = useState('');
   const [first, setFirst] = useState(''); const [last, setLast] = useState(''); const [email, setEmail] = useState(''); const [companyId, setCompanyId] = useState('');
   const [message, setMessage] = useState(''); const [selected, setSelected] = useState<any>(null); const [selectedSender, setSelectedSender] = useState<Sender | null>(null);
+  const selectedLineName = useLineName(selected?.contact.line_user_id, call);
 
   useEffect(() => {
     let active = true;
@@ -191,8 +193,8 @@ export default function Contacts({ call, openLead, onRecordsChanged }: { call: C
       <button className="close" aria-label="ปิดรายละเอียด Contact" onClick={() => setSelected(null)}>×</button><div className="eyebrow">CONTACT DETAILS</div>
       <h2>{selected.contact.first_name} {selected.contact.last_name}</h2><p className="muted">{[selected.contact.company, selected.contact.title].filter(Boolean).join(' · ') || 'ไม่มีบริษัทหรือชื่อตำแหน่ง'}</p>
       <RecordActions entity="contacts" record={selected.contact} call={call} onChanged={async deleted=>{setPage(1);setReload(current=>current+1);if(deleted)setSelected(null);else await openContact(selected.contact.id);await onRecordsChanged?.();}} />
-      <div className="drawerBlock"><p>Email: {selected.contact.email || '—'}</p><p>Phone: {selected.contact.phone || '—'}</p><p>LINE: <span className="lineUserId">{selected.contact.line_user_id || '—'}</span></p></div>
-      <div className="drawerBlock"><h3>Conversation</h3><p className="muted">ข้อความล่าสุด 100 รายการของ Contact นี้</p><Conversation messages={[...(selected.messages || [])].reverse()} /></div>
+      <div className="drawerBlock"><p>Email: {selected.contact.email || '—'}</p><p>Phone: {selected.contact.phone || '—'}</p><p>LINE: <span title={selected.contact.line_user_id||undefined}>{selectedLineName}</span></p></div>
+      <div className="drawerBlock"><h3>Conversation</h3><p className="muted">ข้อความล่าสุด 100 รายการของ Contact นี้</p><Conversation messages={[...(selected.messages || [])].reverse()} senderName={selected.contact.line_user_id ? selectedLineName : 'ผู้ส่ง LINE'} /></div>
       <div className="drawerBlock"><h3>Leads ({selected.leads.length})</h3>{selected.leads.length ? <div className="tableWrap"><table className="recordTable"><thead><tr><th>LEAD</th><th>STAGE</th><th>VALUE</th></tr></thead><tbody>{selected.leads.map((lead: any) => <tr key={lead.id} role="button" tabIndex={0} onClick={() => { setSelected(null); openLead(lead.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(null); openLead(lead.id); } }}><td data-label="โอกาสขาย"><strong>{lead.title}</strong></td><td data-label="สถานะ">{lead.stage}</td><td data-label="มูลค่า">{lead.value ? `฿${Number(lead.value).toLocaleString()}` : '—'}</td></tr>)}</tbody></table></div> : <p className="muted">ยังไม่มี Lead ของ Contact นี้</p>}</div>
     </DetailDrawer></div>}
   </>;

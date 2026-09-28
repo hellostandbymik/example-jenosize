@@ -6,12 +6,14 @@ import { pinoHttp } from 'pino-http';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { query, pool } from './db/pool.js';
+import { databaseErrorCode } from './db/config.js';
 import { issueToken, requireAuth } from './auth.js';
 import { analyzeLead } from './ai.js';
 import { lineEventKey, sendLineText, verifyLineSignature } from './line.js';
 
 const app=express(); const logger=pino({level:process.env.LOG_LEVEL||'info'});
-app.use(cors({origin:process.env.WEB_ORIGIN||'http://localhost:3000'})); app.use(pinoHttp({logger}));
+app.use(cors({origin:process.env.WEB_ORIGIN||'http://localhost:3000'}));
+app.use(pinoHttp({logger,serializers:{req:req=>({id:req.id,method:req.method,url:req.url?.split('?')[0]})}}));
 app.post('/webhooks/line',express.raw({type:'application/json',limit:'1mb'}),async(req,res)=>{
   const raw=req.body as Buffer;
   if(!verifyLineSignature(raw,req.header('x-line-signature'),process.env.LINE_CHANNEL_SECRET)) return res.status(401).json({error:'Invalid LINE signature'});
@@ -23,7 +25,16 @@ app.post('/webhooks/line',express.raw({type:'application/json',limit:'1mb'}),asy
   } return res.status(200).json({ok:true}); } catch(e){req.log.error(e); return res.status(500).json({error:'Webhook processing failed'});}
 });
 app.use(express.json({limit:'1mb'}));
-app.get('/api/health',async(_req,res)=>{try{await query('SELECT 1');res.json({status:'ok',database:'ok',lineConfigured:Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN)});}catch{res.status(503).json({status:'degraded',database:'unavailable'});}});
+app.get('/api/health',async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  try {
+    await query('SELECT 1');
+    res.json({status:'ok',database:'ok',lineConfigured:Boolean(process.env.LINE_CHANNEL_ACCESS_TOKEN)});
+  } catch(error) {
+    req.log.error({event:'database_health_failed',code:databaseErrorCode(error)},'Database health check failed');
+    res.status(503).json({status:'degraded',database:'unavailable'});
+  }
+});
 app.post('/api/auth/login',async(req,res)=>{const parsed=z.object({email:z.string().email(),password:z.string().min(1)}).safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'Invalid login data'});const {email,password}=parsed.data;const r=await query('SELECT id,name,email,password_hash,role FROM users WHERE email=$1 AND active=true',[email]);const u=r.rows[0];if(!u||!(await bcrypt.compare(password,u.password_hash)))return res.status(401).json({error:'Email or password is incorrect'});const user={id:u.id,name:u.name,email:u.email,role:u.role};res.json({token:issueToken(user),user});});
 app.use('/api',requireAuth);
 app.get('/api/me',(req,res)=>res.json({user:req.user}));

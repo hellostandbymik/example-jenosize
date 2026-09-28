@@ -159,7 +159,7 @@ export default function Contacts({ call, openLead }: { call: Call; openLead: (id
       </div>
       <div className="contactLineFilters" role="group" aria-label="กรองสถานะ LINE">
         {[['all', 'ทั้งหมด'], ['linked', 'Linked'], ['unlinked', 'Not linked']].map(([value, label]) =>
-          <button key={value} className={lineFilter === value ? 'primary' : 'softButton'} aria-pressed={lineFilter === value} onClick={() => { setLineFilter(value); setPage(1); setPageData(null); }}>{label}{pageData ? ` (${pageData.counts[value].toLocaleString()})` : ''}</button>)}
+          <button key={value} className={lineFilter === value ? 'primary' : 'softButton'} aria-pressed={lineFilter === value} onClick={() => { setLineFilter(value); setPage(1); }}>{label}{pageData ? ` (${pageData.counts[value].toLocaleString()})` : ''}</button>)}
         <button className="softButton contactRefresh" onClick={() => { setPage(1); setReload(current => current + 1); }}>รีเฟรช</button>
       </div>
       <ContactPagination data={pageData} loading={loading} change={setPage} />

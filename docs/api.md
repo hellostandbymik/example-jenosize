@@ -27,3 +27,17 @@ Base URL: `http://localhost:4000`. All `/api/*` routes other than login and heal
 | GET | `/api/health` | API/database health |
 
 Errors use JSON `{ "error": "..." }`; validation errors may include `details`. Stage values: `New`, `Qualified`, `Proposal`, `Won`, `Lost`.
+
+Authenticated record management (Companies, Contacts and Leads):
+
+| Method | Path | Purpose |
+|---|---|---|
+| PATCH | `/api/companies/:id` | Edit `name`, `website`, `industry`, `phone`, `notes` |
+| PATCH | `/api/contacts/:id` | Edit `firstName`, `lastName`, `email`, `phone`, `companyId`, `title`; preserve LINE mapping |
+| PATCH | `/api/leads/:id` | Edit `title`, `companyId`, `contactId`, `stage`, `source`, `value`, `probability`, `nextFollowUp`, `lossReason` |
+| GET | `/api/{companies,contacts,leads}/:id/delete-impact` | Preview record name and affected record counts |
+| DELETE | `/api/{companies,contacts,leads}/:id` | Delete with `{confirmName, expectedImpact}` from the preview |
+
+PATCH accepts a nonempty subset of these fields, rejects unknown fields and leaves omitted fields unchanged. Optional text/relationships/dates can be cleared with `null`; probability is an integer from 0 to 100. Dates use an ISO timestamp with timezone. Lead stage changes create an activity; switching out of Lost clears the loss reason. All record mutations and their audit logs commit in one transaction.
+
+Deletion is permanent and requires the preview's exact name and impact object. If the name or related counts changed, DELETE returns 409 and the UI requires a fresh preview. Deleting a company retains its contacts/leads with `company_id=null`. Deleting a contact retains its leads/messages with `contact_id=null` and removes that contact's LINE mapping; retained inbound webhook events allow the sender to appear in Unmapped again. Deleting a lead cascades its activities/AI suggestions, retains messages with `lead_id=null`, and preserves the company/contact. Audit history is retained.

@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import RecordActions from './record-actions';
 
-type Call = (path: string, options?: { method?: string; body?: string }) => Promise<any>;
+type Call = (path: string, options?: RequestInit) => Promise<any>;
 type Contact = { id: string; first_name: string; last_name: string | null; email: string | null; company: string | null; line_user_id: string | null };
 type Sender = { line_user_id: string; processed_at: string; message_count: number; latest_message: string | null; latest_message_type: string | null };
 type ChatMessage = { id: string; content: string | null; created_at: string; direction?: string; message_type?: string };
@@ -91,7 +92,7 @@ function SenderConversation({ sender, name, call, close }: { sender: Sender; nam
   </aside></div>;
 }
 
-export default function Contacts({ call, openLead }: { call: Call; openLead: (id: string) => void }) {
+export default function Contacts({ call, openLead, onRecordsChanged }: { call: Call; openLead: (id: string) => void; onRecordsChanged?:()=>Promise<void> }) {
   const [items, setItems] = useState<Contact[]>([]);
   const [linkOptions, setLinkOptions] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
@@ -188,6 +189,7 @@ export default function Contacts({ call, openLead }: { call: Call; openLead: (id
     {selected && <div className="drawerBackdrop" onClick={() => setSelected(null)}><aside className="drawer" role="dialog" aria-modal="true" aria-label="รายละเอียด Contact" onClick={e => e.stopPropagation()}>
       <button className="close" aria-label="ปิดรายละเอียด Contact" onClick={() => setSelected(null)}>×</button><div className="eyebrow">CONTACT DETAILS</div>
       <h2>{selected.contact.first_name} {selected.contact.last_name}</h2><p className="muted">{[selected.contact.company, selected.contact.title].filter(Boolean).join(' · ') || 'ไม่มีบริษัทหรือชื่อตำแหน่ง'}</p>
+      <RecordActions entity="contacts" record={selected.contact} call={call} onChanged={async deleted=>{setPage(1);setReload(current=>current+1);if(deleted)setSelected(null);else await openContact(selected.contact.id);await onRecordsChanged?.();}} />
       <div className="drawerBlock"><p>Email: {selected.contact.email || '—'}</p><p>Phone: {selected.contact.phone || '—'}</p><p>LINE: <span className="lineUserId">{selected.contact.line_user_id || '—'}</span></p></div>
       <div className="drawerBlock"><h3>Conversation</h3><p className="muted">ข้อความล่าสุด 100 รายการของ Contact นี้</p><Conversation messages={[...(selected.messages || [])].reverse()} /></div>
       <div className="drawerBlock"><h3>Leads ({selected.leads.length})</h3>{selected.leads.length ? <div className="tableWrap"><table><thead><tr><th>LEAD</th><th>STAGE</th><th>VALUE</th></tr></thead><tbody>{selected.leads.map((lead: any) => <tr key={lead.id} role="button" tabIndex={0} onClick={() => { setSelected(null); openLead(lead.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(null); openLead(lead.id); } }}><td><strong>{lead.title}</strong></td><td>{lead.stage}</td><td>{lead.value ? `฿${Number(lead.value).toLocaleString()}` : '—'}</td></tr>)}</tbody></table></div> : <p className="muted">ยังไม่มี Lead ของ Contact นี้</p>}</div>

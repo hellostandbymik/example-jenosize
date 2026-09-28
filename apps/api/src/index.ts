@@ -12,6 +12,7 @@ import { createAIRouter } from './ai-routes.js';
 import { sendLineText } from './line.js';
 import { createLineWebhookRouter } from './line-webhook.js';
 import { createContactsLineRouter } from './contacts-line.js';
+import { createRecordRouter } from './record-routes.js';
 
 const app=express(); const logger=pino({level:process.env.LOG_LEVEL||'info'});
 app.use(cors({origin:process.env.WEB_ORIGIN||'http://localhost:3000'}));
@@ -30,6 +31,7 @@ app.get('/api/health',async(req,res)=>{
 });
 app.post('/api/auth/login',async(req,res)=>{const parsed=z.object({email:z.string().email(),password:z.string().min(1)}).safeParse(req.body);if(!parsed.success)return res.status(400).json({error:'Invalid login data'});const {email,password}=parsed.data;const r=await query('SELECT id,name,email,password_hash,role FROM users WHERE email=$1 AND active=true',[email]);const u=r.rows[0];if(!u||!(await bcrypt.compare(password,u.password_hash)))return res.status(401).json({error:'Email or password is incorrect'});const user={id:u.id,name:u.name,email:u.email,role:u.role};res.json({token:issueToken(user),user});});
 app.use('/api',requireAuth);
+app.use('/api',createRecordRouter(pool));
 app.get('/api/me',(req,res)=>res.json({user:req.user}));
 app.get('/api/dashboard',async(req,res)=>{const [stages,follow,latest]=await Promise.all([query('SELECT stage,count(*)::int count FROM leads GROUP BY stage'),query("SELECT count(*)::int count FROM leads WHERE next_follow_up<=now() AND stage NOT IN ('Won','Lost')"),query(`SELECT l.id,l.title,l.stage,l.updated_at,c.name company FROM leads l LEFT JOIN companies c ON c.id=l.company_id ORDER BY l.updated_at DESC LIMIT 6`)]);res.json({stages:stages.rows,followUpDue:follow.rows[0].count,recent:latest.rows});});
 app.get('/api/leads',async(req,res)=>{const q=String(req.query.q||'').trim();const stage=String(req.query.stage||'');const params:any[]=[];let where='WHERE 1=1';if(q){params.push(`%${q}%`);where+=` AND (l.title ILIKE $${params.length} OR c.name ILIKE $${params.length} OR ct.first_name ILIKE $${params.length} OR ct.last_name ILIKE $${params.length})`;}if(stage&&['New','Qualified','Proposal','Won','Lost'].includes(stage)){params.push(stage);where+=` AND l.stage=$${params.length}`;}params.push(Math.min(Number(req.query.limit)||300,500));const r=await query(`SELECT l.*,c.name company,ct.first_name contact_first,ct.last_name contact_last,u.name owner FROM leads l LEFT JOIN companies c ON c.id=l.company_id LEFT JOIN contacts ct ON ct.id=l.contact_id JOIN users u ON u.id=l.owner_id ${where} ORDER BY l.updated_at DESC LIMIT $${params.length}`,params);res.json({items:r.rows});});

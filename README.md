@@ -31,6 +31,9 @@ Open `http://localhost:3000`. Demo credentials: `demo@jenosize.local` / `[remove
 The AI works in deterministic fallback mode with no provider key. To enable the OpenAI adapter, set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and `AI_MODEL` in `.env`. AI results are suggestions only. LINE outbound messages require explicit approval. `LINE_MODE=mock` is the local default and records mock send results without contacting LINE; set `LINE_MODE=live` only after configuring the test OA credentials.
 
 ## LINE OA test setup
+
+For the deployed API, use `https://example-jenosize-api.vercel.app/webhooks/line`. See [LINE OA setup](docs/line-oa-setup.md) for Vercel configuration and verification.
+
 1. Create a LINE Messaging API channel for a test Official Account, then enable **Use webhook**. For a local API, expose `http://localhost:4000` through a temporary public HTTPS tunnel and set the webhook URL to `https://YOUR_TUNNEL_HOST/webhooks/line`. LINE cannot call `localhost` on your computer directly.
 2. Copy the channel secret into `LINE_CHANNEL_SECRET` in the API `.env`, restart the API, then use **Verify** in LINE Developers Console. The endpoint verifies `x-line-signature` against the raw request body and returns HTTP 200 for a valid event, including LINE's empty verification event. Keep `LINE_MODE=mock` if you only need to receive and analyze messages.
 3. Add the test OA as a friend and send it a text. In CRM, open **Contacts** and link the new unmapped LINE sender to its Contact. Historical messages received before linking are attached when the sender is linked. Then make sure that Contact is selected on the Lead you want to analyze.

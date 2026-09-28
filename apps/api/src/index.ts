@@ -9,21 +9,13 @@ import { query, pool } from './db/pool.js';
 import { databaseErrorCode } from './db/config.js';
 import { issueToken, requireAuth } from './auth.js';
 import { analyzeLead } from './ai.js';
-import { lineEventKey, sendLineText, verifyLineSignature } from './line.js';
+import { sendLineText } from './line.js';
+import { createLineWebhookRouter } from './line-webhook.js';
 
 const app=express(); const logger=pino({level:process.env.LOG_LEVEL||'info'});
 app.use(cors({origin:process.env.WEB_ORIGIN||'http://localhost:3000'}));
 app.use(pinoHttp({logger,serializers:{req:req=>({id:req.id,method:req.method,url:req.url?.split('?')[0]})}}));
-app.post('/webhooks/line',express.raw({type:'application/json',limit:'1mb'}),async(req,res)=>{
-  const raw=req.body as Buffer;
-  if(!verifyLineSignature(raw,req.header('x-line-signature'),process.env.LINE_CHANNEL_SECRET)) return res.status(401).json({error:'Invalid LINE signature'});
-  let body:any; try{body=JSON.parse(raw.toString('utf8'))}catch{return res.status(400).json({error:'Invalid JSON'})}
-  try { for(const ev of body.events||[]){
-    const eventKey=lineEventKey(ev); const lineId=ev.source?.userId||null;
-    const inserted=await query('INSERT INTO webhook_events(event_key,line_user_id,payload) VALUES($1,$2,$3) ON CONFLICT(event_key) DO NOTHING RETURNING event_key',[eventKey,lineId,ev]); if(!inserted.rowCount) continue;
-    if(ev.type==='message'&&ev.message?.type==='text'&&lineId){ const c=await query('SELECT id FROM contacts WHERE line_user_id=$1',[lineId]); await query(`INSERT INTO messages(contact_id,channel,direction,content,status,external_id) VALUES($1,'LINE','inbound',$2,'received',$3)`,[c.rows[0]?.id||null,ev.message.text,ev.message.id||eventKey]); }
-  } return res.status(200).json({ok:true}); } catch(e){req.log.error(e); return res.status(500).json({error:'Webhook processing failed'});}
-});
+app.use(createLineWebhookRouter(pool));
 app.use(express.json({limit:'1mb'}));
 app.get('/api/health',async(req,res)=>{
   res.set('Cache-Control','no-store');

@@ -7,6 +7,20 @@ type Contact = { id: string; first_name: string; last_name: string | null; email
 type Sender = { line_user_id: string; processed_at: string; message_count: number; latest_message: string | null; latest_message_type: string | null };
 type ChatMessage = { id: string; content: string | null; created_at: string; direction?: string; message_type?: string };
 type Profile = { display_name: string | null };
+type ContactPage = { counts: Record<string, number>; total: number; page: number; pageSize: number; totalPages: number };
+
+function ContactPagination({ data, loading, change }: { data: ContactPage | null; loading: boolean; change: (page: number) => void }) {
+  if (!data) return null;
+  const start = data.total ? (data.page - 1) * data.pageSize + 1 : 0;
+  const end = Math.min(data.page * data.pageSize, data.total);
+  return <nav className="contactPagination" aria-label="เปลี่ยนหน้า Contacts">
+    <span role="status">{loading ? 'กำลังโหลด Contacts…' : `แสดง ${start.toLocaleString()}–${end.toLocaleString()} จาก ${data.total.toLocaleString()} ราย`}</span>
+    <div><button className="softButton" disabled={loading || data.page <= 1} onClick={() => change(data.page - 1)}>ก่อนหน้า</button>
+      <select aria-label="หน้า Contacts" value={data.page} disabled={loading} onChange={e => change(Number(e.target.value))}>
+        {Array.from({ length: data.totalPages }, (_, i) => <option key={i + 1} value={i + 1}>หน้า {i + 1} / {data.totalPages}</option>)}
+      </select><button className="softButton" disabled={loading || data.page >= data.totalPages} onClick={() => change(data.page + 1)}>ถัดไป</button></div>
+  </nav>;
+}
 
 function messageText(content: string | null, type?: string | null) {
   if (content !== null) return content;
@@ -84,6 +98,8 @@ export default function Contacts({ call, openLead }: { call: Call; openLead: (id
   const [unknown, setUnknown] = useState<Sender[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [lineFilter, setLineFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [pageData, setPageData] = useState<ContactPage | null>(null);
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -93,10 +109,10 @@ export default function Contacts({ call, openLead }: { call: Call; openLead: (id
   useEffect(() => {
     let active = true;
     setLoading(true); setLoadError(''); setItems([]);
-    call(`/api/contacts?line=${lineFilter}`).then(data => { if (active) setItems(data.items); })
+    call(`/api/contacts?line=${lineFilter}&page=${page}`).then(data => { if (active) { setItems(data.items); setPageData(data); setPage(data.page); } })
       .catch((e: Error) => { if (active) setLoadError(e.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [call, lineFilter, reload]);
+  }, [call, lineFilter, page, reload]);
   useEffect(() => {
     let active = true;
     Promise.all([call('/api/contacts?line=unlinked'), call('/api/contacts/unmapped'), call('/api/companies')])
@@ -126,26 +142,27 @@ export default function Contacts({ call, openLead }: { call: Call; openLead: (id
     e.preventDefault();
     try {
       await call('/api/contacts', { method: 'POST', body: JSON.stringify({ firstName: first, lastName: last, email, companyId: companyId || null }) });
-      setFirst(''); setLast(''); setEmail(''); setCompanyId(''); setMessage('เพิ่ม Contact สำเร็จ'); setReload(current => current + 1);
+      setFirst(''); setLast(''); setEmail(''); setCompanyId(''); setMessage('เพิ่ม Contact สำเร็จ'); setPage(1); setReload(current => current + 1);
     } catch (e) { setMessage((e as Error).message); }
   }
   async function link(lineUserId: string, contactId: string) {
     try {
       await call(`/api/contacts/${contactId}/link-line`, { method: 'POST', body: JSON.stringify({ lineUserId }) });
-      setMessage('เชื่อม LINE กับ Contact สำเร็จ'); setReload(current => current + 1);
+      setMessage('เชื่อม LINE กับ Contact สำเร็จ'); setPage(1); setReload(current => current + 1);
     } catch (e) { setMessage((e as Error).message); }
   }
 
   return <>
     <section className="contentCard">
-      <div className="sectionHead"><div><h3>Contacts</h3><p>ผู้ติดต่อที่เชื่อมกับบริษัทและ LINE · แสดงล่าสุด 200 รายตามตัวกรอง</p></div>
+      <div className="sectionHead"><div><h3>Contacts</h3><p>ผู้ติดต่อที่เชื่อมกับบริษัทและ LINE · ดูได้ครบทุกคน ครั้งละ 200 ราย</p></div>
         <a className="softButton senderJump" href="#unmapped-line">ดูผู้ส่งที่ยังไม่จับคู่ ({unknown.length}) ↓</a>
       </div>
       <div className="contactLineFilters" role="group" aria-label="กรองสถานะ LINE">
         {[['all', 'ทั้งหมด'], ['linked', 'Linked'], ['unlinked', 'Not linked']].map(([value, label]) =>
-          <button key={value} className={lineFilter === value ? 'primary' : 'softButton'} aria-pressed={lineFilter === value} onClick={() => setLineFilter(value)}>{label}</button>)}
-        <button className="softButton contactRefresh" onClick={() => setReload(current => current + 1)}>รีเฟรช</button>
+          <button key={value} className={lineFilter === value ? 'primary' : 'softButton'} aria-pressed={lineFilter === value} onClick={() => { setLineFilter(value); setPage(1); setPageData(null); }}>{label}{pageData ? ` (${pageData.counts[value].toLocaleString()})` : ''}</button>)}
+        <button className="softButton contactRefresh" onClick={() => { setPage(1); setReload(current => current + 1); }}>รีเฟรช</button>
       </div>
+      <ContactPagination data={pageData} loading={loading} change={setPage} />
       <form className="newLead contactForm" onSubmit={submit}>
         <input aria-label="ชื่อ Contact" placeholder="ชื่อ" value={first} onChange={e => setFirst(e.target.value)} required />
         <input aria-label="นามสกุล Contact" placeholder="นามสกุล" value={last} onChange={e => setLast(e.target.value)} />
@@ -160,6 +177,7 @@ export default function Contacts({ call, openLead }: { call: Call; openLead: (id
         </tr>)}
         {!items.length && <tr><td colSpan={4} className="empty">{loading ? 'กำลังโหลด Contacts…' : 'ไม่มี Contact ที่ตรงกับตัวกรองนี้'}</td></tr>}
       </tbody></table></div>
+      <ContactPagination data={pageData} loading={loading} change={setPage} />
     </section>
     <section id="unmapped-line" className="contentCard lineSendersSection">
       <div className="sectionHead"><div><h3>Unmapped LINE senders</h3><p>รวมข้อความตามผู้ส่ง · เลือก Contact แล้วกดจับคู่</p></div><span className="badge">{unknown.length} คน</span></div>

@@ -27,10 +27,20 @@ export function createContactsLineRouter(database: Database, getProfile = getLin
   router.get('/contacts', handle(async (req, res) => {
     const filter = req.query.line || 'all';
     if (!['all', 'linked', 'unlinked'].includes(String(filter))) return res.status(400).json({ error: 'Invalid LINE filter' });
+    const requestedPage = req.query.page ?? '1';
+    if (typeof requestedPage !== 'string' || !/^[1-9]\d{0,6}$/.test(requestedPage)) return res.status(400).json({ error: 'Invalid contact page' });
+    const countsResult = await database.query(`SELECT count(*)::int AS all,
+      count(*) FILTER (WHERE line_user_id IS NOT NULL)::int AS linked,
+      count(*) FILTER (WHERE line_user_id IS NULL)::int AS unlinked FROM contacts`);
+    const counts = countsResult.rows[0] || { all: 0, linked: 0, unlinked: 0 };
+    const total = counts[String(filter)];
+    const pageSize = 200;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(Number(requestedPage), totalPages);
     const where = filter === 'linked' ? 'WHERE ct.line_user_id IS NOT NULL'
       : filter === 'unlinked' ? 'WHERE ct.line_user_id IS NULL' : '';
-    const result = await database.query(`SELECT ct.*,c.name company FROM contacts ct LEFT JOIN companies c ON c.id=ct.company_id ${where} ORDER BY ct.created_at DESC LIMIT 200`);
-    res.json({ items: result.rows });
+    const result = await database.query(`SELECT ct.*,c.name company FROM contacts ct LEFT JOIN companies c ON c.id=ct.company_id ${where} ORDER BY ct.updated_at DESC,ct.id DESC LIMIT 200 OFFSET $1`, [(page - 1) * pageSize]);
+    res.json({ items: result.rows, counts, total, page, pageSize, totalPages });
   }));
   router.get('/contacts/unmapped', handle(async (_req, res) => {
     const result = await database.query(unmappedSendersSql);

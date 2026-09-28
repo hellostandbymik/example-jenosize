@@ -26,6 +26,28 @@ describe('Contacts LINE browsing', () => {
     expect((await fetch(`${origin}/contacts?line=anything`)).status).toBe(400);
     expect(query).not.toHaveBeenCalled();
   });
+  it('rejects invalid page parameters before accessing the database', async () => {
+    for (const page of ['0', '-1', '1.5', 'anything', '', '99999999', '1&page=2']) {
+      expect((await fetch(`${origin}/contacts?page=${page}`)).status).toBe(400);
+    }
+    expect(query).not.toHaveBeenCalled();
+  });
+  it('shows global status counts and the correct filtered page total', async () => {
+    const counts = { all: 2000, linked: 2, unlinked: 1998 };
+    const items = [{ id: 'linked-contact', line_user_id: userId }];
+    query.mockImplementation(async sql => ({ rows: sql.startsWith('SELECT count') ? [counts] : items }));
+    const data = await (await fetch(`${origin}/contacts?line=linked&page=10`)).json();
+    expect(data).toEqual({ items, counts, total: 2, page: 1, pageSize: 200, totalPages: 1 });
+  });
+  it('supports pages beyond the original 200 contacts with a unique sort order', async () => {
+    const counts = { all: 2000, linked: 2, unlinked: 1998 };
+    query.mockImplementation(async sql => ({ rows: sql.startsWith('SELECT count') ? [counts] : [] }));
+    const data = await (await fetch(`${origin}/contacts?line=all&page=2`)).json();
+    expect(data).toMatchObject({ counts, total: 2000, page: 2, totalPages: 10 });
+    expect(query.mock.lastCall?.[1]).toEqual([200]);
+    expect(query.mock.lastCall?.[0]).toContain('ct.updated_at DESC,ct.id DESC');
+    expect(query.mock.lastCall?.[0]).not.toContain('WHERE ct.line_user_id');
+  });
   it('returns a retryable JSON error if the database is unavailable', async () => {
     query.mockRejectedValue(new Error('private connection details'));
     const response = await fetch(`${origin}/contacts/unmapped`);

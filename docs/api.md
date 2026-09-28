@@ -13,6 +13,7 @@ Base URL: `http://localhost:4000`. All `/api/*` routes other than login and heal
 | PATCH | `/api/leads/:id/stage` | Update stage with activity/audit trail |
 | POST | `/api/leads/:id/activities` | Add note/activity |
 | POST | `/api/ai/leads/:id/analyze` | Generate and persist AI suggestion |
+| GET | `/api/ai/config` | Authenticated provider/model/readiness; no secret values |
 | POST | `/api/leads/:id/messages/drafts` | Save outbound LINE draft |
 | POST | `/api/messages/:id/approve` | Record explicit approval |
 | POST | `/api/messages/:id/send` | Send approved message through LINE |

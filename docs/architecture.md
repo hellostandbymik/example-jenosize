@@ -31,5 +31,5 @@ For the assignment's scale (20 users, 2,000 contacts, 300 active leads), the imp
 ## Key trade-offs
 - PostgreSQL provides durable relational constraints and useful querying without introducing a separate search system for this volume.
 - Express keeps the API small and easy to review. The same endpoint/service boundaries can move to NestJS later if module and team size grow.
-- Mock/fallback AI keeps local demos reliable; a real provider is optional and must pass output validation.
+- Explicit mock AI keeps local demos available. OpenAI mode uses Structured Outputs plus runtime validation; provider errors are shown without silently substituting a fallback result.
 - LINE integration is an adapter, not the primary CRM workflow. The CRM remains usable when LINE is unavailable.

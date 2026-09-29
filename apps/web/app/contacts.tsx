@@ -94,7 +94,7 @@ function SenderConversation({ sender, name, call, close }: { sender: Sender; nam
   </DetailDrawer></div>;
 }
 
-export default function Contacts({ call, openLead, onRecordsChanged }: { call: Call; openLead: (id: string) => void; onRecordsChanged?:()=>Promise<void> }) {
+export default function Contacts({ call, openLead, onRecordsChanged, canManage }: { call: Call; openLead: (id: string) => void; onRecordsChanged?:()=>Promise<void>; canManage: boolean }) {
   const [items, setItems] = useState<Contact[]>([]);
   const [linkOptions, setLinkOptions] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
@@ -119,11 +119,11 @@ export default function Contacts({ call, openLead, onRecordsChanged }: { call: C
   }, [call, lineFilter, page, reload]);
   useEffect(() => {
     let active = true;
-    Promise.all([call('/api/contacts?line=unlinked'), call('/api/contacts/unmapped'), call('/api/companies')])
+    Promise.all([call('/api/contacts?line=unlinked'), canManage?call('/api/contacts/unmapped'):Promise.resolve({items:[]}), call('/api/companies')])
       .then(([contacts, senders, companies]) => { if (active) { setLinkOptions(contacts.items); setUnknown(senders.items); setCompanies(companies.items); } })
       .catch((e: Error) => { if (active) setLoadError(e.message); });
     return () => { active = false; };
-  }, [call, reload]);
+  }, [call, reload, canManage]);
   useEffect(() => {
     let active = true; let next = 0;
     // Names load separately so a slow LINE API never hides contacts or messages.
@@ -159,7 +159,7 @@ export default function Contacts({ call, openLead, onRecordsChanged }: { call: C
   return <>
     <section className="contentCard">
       <div className="sectionHead"><div><h3>Contacts</h3><p>ผู้ติดต่อที่เชื่อมกับบริษัทและ LINE · ดูได้ครบทุกคน ครั้งละ 200 ราย</p></div>
-        <a className="softButton senderJump" href="#unmapped-line">ดูผู้ส่งที่ยังไม่จับคู่ ({unknown.length}) ↓</a>
+        {canManage&&<a className="softButton senderJump" href="#unmapped-line">ดูผู้ส่งที่ยังไม่จับคู่ ({unknown.length}) ↓</a>}
       </div>
       <div className="contactLineFilters" role="group" aria-label="กรองสถานะ LINE">
         {[['all', 'ทั้งหมด'], ['linked', 'Linked'], ['unlinked', 'Not linked']].map(([value, label]) =>
@@ -183,16 +183,16 @@ export default function Contacts({ call, openLead, onRecordsChanged }: { call: C
       </tbody></table></div>
       <ContactPagination data={pageData} loading={loading} change={setPage} />
     </section>
-    <section id="unmapped-line" className="contentCard lineSendersSection">
+    {canManage&&<section id="unmapped-line" className="contentCard lineSendersSection">
       <div className="sectionHead"><div><h3>Unmapped LINE senders</h3><p>รวมข้อความตามผู้ส่ง · เลือก Contact แล้วกดจับคู่</p></div><span className="badge">{unknown.length} คน</span></div>
       {unknown.map(sender => <SenderCard key={sender.line_user_id} sender={sender} name={senderName(sender.line_user_id)} contacts={linkOptions} link={link} open={() => setSelectedSender(sender)} />)}
       {!unknown.length && <p className="muted">ไม่มีผู้ส่งที่รอจับคู่</p>}
     </section>
-    {selectedSender && <SenderConversation key={selectedSender.line_user_id} sender={selectedSender} name={senderName(selectedSender.line_user_id)} call={call} close={() => setSelectedSender(null)} />}
+    }{selectedSender && <SenderConversation key={selectedSender.line_user_id} sender={selectedSender} name={senderName(selectedSender.line_user_id)} call={call} close={() => setSelectedSender(null)} />}
     {selected && <div className="drawerBackdrop" onClick={() => setSelected(null)}><DetailDrawer label="รายละเอียด Contact" close={() => setSelected(null)}>
       <button className="close" aria-label="ปิดรายละเอียด Contact" onClick={() => setSelected(null)}>×</button><div className="eyebrow">CONTACT DETAILS</div>
       <h2>{selected.contact.first_name} {selected.contact.last_name}</h2><p className="muted">{[selected.contact.company, selected.contact.title].filter(Boolean).join(' · ') || 'ไม่มีบริษัทหรือชื่อตำแหน่ง'}</p>
-      <RecordActions entity="contacts" record={selected.contact} call={call} onChanged={async deleted=>{setPage(1);setReload(current=>current+1);if(deleted)setSelected(null);else await openContact(selected.contact.id);await onRecordsChanged?.();}} />
+      <RecordActions canManage={canManage} entity="contacts" record={selected.contact} call={call} onChanged={async deleted=>{setPage(1);setReload(current=>current+1);if(deleted)setSelected(null);else await openContact(selected.contact.id);await onRecordsChanged?.();}} />
       <div className="drawerBlock"><p>Email: {selected.contact.email || '—'}</p><p>Phone: {selected.contact.phone || '—'}</p><p>LINE: <span title={selected.contact.line_user_id||undefined}>{selectedLineName}</span></p></div>
       <div className="drawerBlock"><h3>Conversation</h3><p className="muted">ข้อความล่าสุด 100 รายการของ Contact นี้</p><Conversation messages={[...(selected.messages || [])].reverse()} senderName={selected.contact.line_user_id ? selectedLineName : 'ผู้ส่ง LINE'} /></div>
       <div className="drawerBlock"><h3>Leads ({selected.leads.length})</h3>{selected.leads.length ? <div className="tableWrap"><table className="recordTable"><thead><tr><th>LEAD</th><th>STAGE</th><th>VALUE</th></tr></thead><tbody>{selected.leads.map((lead: any) => <tr key={lead.id} role="button" tabIndex={0} onClick={() => { setSelected(null); openLead(lead.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(null); openLead(lead.id); } }}><td data-label="โอกาสขาย"><strong>{lead.title}</strong></td><td data-label="สถานะ">{lead.stage}</td><td data-label="มูลค่า">{lead.value ? `฿${Number(lead.value).toLocaleString()}` : '—'}</td></tr>)}</tbody></table></div> : <p className="muted">ยังไม่มี Lead ของ Contact นี้</p>}</div>

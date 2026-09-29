@@ -7,7 +7,7 @@ import { createRecordRouter } from './record-routes.js';
 describe('Record editing and deletion', () => {
   const id='10000000-0000-4000-8000-000000000001';
   const user={id:'10000000-0000-4000-8000-000000000002',email:'test@example.test',name:'Test',role:'sales' as const};
-  const row={id,name:'Test company',title:'Test lead',first_name:'Test',last_name:'Contact',stage:'New',line_user_id:'Utest'};
+  const row={id,owner_id:user.id,name:'Test company',title:'Test lead',first_name:'Test',last_name:'Contact',stage:'New',line_user_id:'Utest'};
   const counts={contacts:2,leads:3,messages:4,activities:5,suggestions:6};
   const query=vi.fn();const release=vi.fn();const connect=vi.fn();
   let server:Server;let origin:string;let token:string;
@@ -42,6 +42,19 @@ describe('Record editing and deletion', () => {
     }
     expect(connect).not.toHaveBeenCalled();
   });
+  it('saves a follow up schedule and its visible activity together',async()=>{
+    const response=await request('leads','PATCH',{nextFollowUp:'2026-09-30T09:00:00+07:00'});
+    expect(response.status).toBe(200);
+    const activity=query.mock.calls.find(([sql])=>sql.includes("'follow_up_scheduled'"));
+    expect(activity?.[1]?.slice(0,2)).toEqual([id,user.id]);
+    expect(activity?.[1]?.[2]).toContain('เวลาไทย');
+    expect(query.mock.calls.some(([sql])=>sql==='COMMIT')).toBe(true);
+  });
+  it('does not duplicate the activity when a schedule is unchanged in another timezone',async()=>{
+    query.mockImplementation(async(sql:string)=>({rows:sql.startsWith('SELECT *')?[{...row,next_follow_up:'2026-09-30T02:00:00Z'}]:sql.startsWith('UPDATE')?[row]:[]}));
+    expect((await request('leads','PATCH',{nextFollowUp:'2026-09-30T09:00:00+07:00'})).status).toBe(200);
+    expect(query.mock.calls.some(([sql])=>sql.includes("'follow_up_scheduled'"))).toBe(false);
+  });
   it('rejects invalid IDs, unsupported fields and out-of-range values before database access',async()=>{
     for(const [entity,body] of [['companies',{}],['companies',{name:''}],['contacts',{line_user_id:'changed'}],['contacts',{email:'invalid'}],['leads',{probability:101}],['leads',{value:-1}],['leads',{stage:'Unknown'}],['leads',{nextFollowUp:'tomorrow'}]])expect((await request(String(entity),'PATCH',body)).status).toBe(400);
     expect((await fetch(`${origin}/leads/not-an-id`,{method:'PATCH',headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:'{}'})).status).toBe(400);
@@ -53,6 +66,18 @@ describe('Record editing and deletion', () => {
     expect(update[1]).toEqual([null,null,0,0,null,id]);
     expect(update[0]).toContain('company_id=$1');
     expect(query.mock.calls.at(-1)?.[0]).toBe('COMMIT');expect(release).toHaveBeenCalledOnce();
+  });
+  it('denies editing and deletion of another member’s lead inside the transaction',async()=>{
+    query.mockResolvedValue({rows:[{...row,owner_id:id}]});
+    expect((await request('leads','PATCH',{title:'Changed'})).status).toBe(404);
+    expect((await request('leads','DELETE',{confirmName:'Test lead',expectedImpact:{}})).status).toBe(404);
+    const preview=await fetch(`${origin}/leads/${id}/delete-impact`,{headers:{authorization:`Bearer ${token}`}});
+    expect(preview.status).toBe(404);
+    expect(query.mock.calls.some(([sql])=>sql.startsWith('UPDATE')||sql.startsWith('DELETE'))).toBe(false);
+  });
+  it('does not let sales members reassign their own leads',async()=>{
+    expect((await request('leads','PATCH',{ownerId:id})).status).toBe(403);
+    expect(connect).not.toHaveBeenCalled();
   });
   it('logs a stage change and clears the lost reason when reopening a lead',async()=>{
     expect((await request('leads','PATCH',{stage:'Qualified',lossReason:'old reason'})).status).toBe(200);

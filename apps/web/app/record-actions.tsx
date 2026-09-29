@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 type Entity='companies'|'contacts'|'leads';
 type Call=(path:string,options?:RequestInit)=>Promise<any>;
-type Props={entity:Entity;record:any;call:Call;onChanged:(deleted:boolean)=>Promise<void>|void};
+type Props={canManage?:boolean;entity:Entity;record:any;call:Call;onChanged:(deleted:boolean)=>Promise<void>|void};
 type Field={key:string;label:string;type?:string;required?:boolean;min?:number;max?:number;step?:string};
 const fields:Record<Entity,Field[]>={
   companies:[{key:'name',label:'ชื่อบริษัท',required:true},{key:'website',label:'เว็บไซต์',type:'url'},{key:'industry',label:'อุตสาหกรรม'},{key:'phone',label:'โทรศัพท์',type:'tel'},{key:'notes',label:'รายละเอียดบริษัท',type:'textarea'}],
@@ -103,6 +103,7 @@ function RecordDialog({entity,record,call,onChanged,mode,close}:Props&{mode:'edi
 }
 export default function RecordActions(props:Props) {
   const [mode,setMode]=useState<'edit'|'delete'|null>(null);
+  if(props.canManage===false)return null;
   return <><div className="recordActions"><button className="softButton" onClick={()=>setMode('edit')}>แก้ไข</button><button className="dangerButton" onClick={()=>setMode('delete')}>ลบ</button></div>
     {mode&&<RecordDialog key={`${props.entity}:${props.record.id}:${mode}`} {...props} mode={mode} close={()=>setMode(null)}/>}</>;
 }

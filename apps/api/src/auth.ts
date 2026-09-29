@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
 const secret = () => process.env.JWT_SECRET || '[removed-legacy-signing-key]';
-export type AuthUser = { id: string; email: string; name: string; role: 'admin'|'sales' };
+export type AuthUser = { id: string; email: string; name: string; role: 'super_admin'|'admin'|'sales'; session_version?: number };
 declare global { namespace Express { interface Request { user?: AuthUser } } }
 export function issueToken(user: AuthUser) { return jwt.sign(user, secret(), { expiresIn: '12h' }); }
 export function requireAuth(req: Request, res: Response, next: NextFunction) {

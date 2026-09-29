@@ -146,3 +146,41 @@ body:has(.drawerBackdrop) { overflow: hidden; }
   .topActions .primary { font-size: 12px; padding: 10px; }
   .metric strong { font-size: 19px; }
 }
+
+.contactPicker { position: relative; flex: 1 1 190px; min-width: 0; }
+.contactPickerControl { position: relative; }
+.contactPicker .contactPickerControl input { width: 100%; padding-right: 68px; min-height: 44px; }
+.contactPickerControl:focus-within input { outline: 2px solid #0c775744; border-color: var(--green); }
+.contactPicker .contactPickerToggle, .contactPicker .contactPickerClear { position: absolute; top: 1px; bottom: 1px; width: 32px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 20px; }
+.contactPicker .contactPickerToggle { right: 1px; }
+.contactPicker .contactPickerClear { right: 33px; }
+.contactPickerControl button:hover { background: var(--pale); color: var(--green); }
+.contactPickerPopup { position: absolute; top: calc(100% + 5px); left: 0; width: 100%; z-index: 4; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 28px #17201d22; overflow: hidden; }
+.contactPickerHint { padding: 8px 11px; background: #f5f8f6; color: var(--muted); font-size: 11px; }
+.contactPickerList { position: relative; max-height: min(260px, 36dvh); overflow-y: auto; overscroll-behavior: contain; }
+.contactPicker .contactPickerOption { display: block; width: 100%; min-height: 44px; padding: 10px 11px; text-align: left; color: var(--ink); border: 0; border-bottom: 1px solid #f0f3f1; border-radius: 0; background: #fff; white-space: normal; }
+.contactPicker .contactPickerOption.active, .contactPicker .contactPickerOption[aria-selected="true"] { background: var(--pale); }
+.contactPickerOption strong, .contactPickerOption small { display: block; overflow-wrap: anywhere; }
+.contactPickerOption strong { font-size: 13px; font-weight: 600; }
+.contactPickerOption small { margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.contactPickerEmpty { padding: 14px 11px; margin: 0; color: var(--muted); font-size: 13px; }
+.recordContactField { display: grid; gap: 6px; min-width: 0; }
+.analysisInputs { display: grid; gap: 8px; margin-top: 16px; }
+.analysisInputs label { font-size: 13px; font-weight: 600; }
+.analysisInputs input[type="file"], .analysisInputs textarea { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 14px; }
+.analysisInputs input::file-selector-button { padding: 8px 10px; margin-right: 10px; border: 0; border-radius: 6px; background: var(--pale); color: var(--green); cursor: pointer; }
+.analysisInputs textarea { min-height: 90px; resize: vertical; }
+.analysisHint { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.analysisFileList { list-style: none; margin: 0; padding: 0; }
+.analysisFileList li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.analysisFileList li span { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 13px; }
+.analysisFileList small { display: block; margin-top: 3px; color: var(--muted); }
+.analysisFileList button { min-width: 44px; min-height: 44px; font-size: 18px; }
+.analysisSources { margin: 12px 0; border: 1px solid var(--line); padding: 10px; border-radius: 8px; background: #fff; }
+.analysisSources summary { cursor: pointer; line-height: 1.7; }
+.analysisSources li { overflow-wrap: anywhere; }
+@media (max-width: 650px) {
+  .analysisInputs input[type="file"], .analysisInputs textarea { font-size: 16px; }
+  .contactPickerOption strong { font-size: 15px; }
+  .contactPickerOption small, .contactPickerHint { font-size: 12px; }
+}

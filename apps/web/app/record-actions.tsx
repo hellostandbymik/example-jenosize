@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import ContactPicker from './contact-picker';
 
 type Entity='companies'|'contacts'|'leads';
 type Call=(path:string,options?:RequestInit)=>Promise<any>;
@@ -84,9 +85,10 @@ function RecordDialog({entity,record,call,onChanged,mode,close}:Props&{mode:'edi
       {mode==='edit'?<div className="recordFields">{fields[entity].filter(field=>field.key!=='lossReason'||values.stage==='Lost').map((field,index)=>{
         const id=`record-field-${field.key}`;
         const choices=field.type==='company'?companies:contacts;
+        if(field.type==='contact')return <div key={field.key} className="recordContactField"><label htmlFor={id}>{field.label}</label><ContactPicker key={values.companyId} id={id} label={field.label} contacts={contacts} companies={companies} companyId={values.companyId} value={values[field.key]} disabled={busy||loading} onChange={value=>setValues(previous=>({...previous,[field.key]:value}))}/></div>;
         return <label key={field.key} htmlFor={id}>{field.label}
           {field.type==='textarea'?<textarea id={id} value={values[field.key]} disabled={busy} onChange={event=>setValues({...values,[field.key]:event.target.value})}/>
-          :['company','contact','stage'].includes(field.type||'')?<select id={id} value={values[field.key]} disabled={busy||loading} onChange={event=>setValues({...values,[field.key]:event.target.value})}>
+          :['company','stage'].includes(field.type||'')?<select id={id} value={values[field.key]} disabled={busy||loading} onChange={event=>setValues({...values,[field.key]:event.target.value,...(entity==='leads'&&field.key==='companyId'?{contactId:''}:{})})}>
             {field.type==='stage'?['New','Qualified','Proposal','Won','Lost'].map(stage=><option key={stage}>{stage}</option>):<><option value="">ไม่ระบุ{field.type==='company'?'บริษัท':'ผู้ติดต่อ'}</option>{choices.map(item=><option key={item.id} value={item.id}>{field.type==='company'?item.name:[item.first_name,item.last_name].filter(Boolean).join(' ')}</option>)}{values[field.key]&&!choices.some(item=>item.id===values[field.key])&&<option value={values[field.key]}>รายการที่เลือกไว้เดิม</option>}</>}
           </select>:<input id={id} autoFocus={index===0} type={field.type||'text'} required={field.required} min={field.min} max={field.max} step={field.step} value={values[field.key]} disabled={busy} onChange={event=>setValues({...values,[field.key]:event.target.value})}/>}
         </label>;

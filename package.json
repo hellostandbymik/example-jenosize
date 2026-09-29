@@ -10,7 +10,8 @@
     "build": "npm --workspace @crm/api run build && npm --workspace @crm/web run build",
     "test": "npm --workspace @crm/api test",
     "db:migrate": "npm --workspace @crm/api run db:migrate",
-    "db:seed": "npm --workspace @crm/api run db:seed"
+    "db:seed": "npm --workspace @crm/api run db:seed",
+    "db:bootstrap-admin": "npm --workspace @crm/api run db:bootstrap-admin"
   },
   "devDependencies": { "concurrently": "^9.1.2", "typescript": "^5.7.3" }
 }

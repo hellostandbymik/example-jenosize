@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './environment.js';
 import express from 'express';
 import cors from 'cors';
 import pino from 'pino';
@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { query, pool } from './db/pool.js';
 import { databaseErrorCode } from './db/config.js';
-import { issueToken, requireAuth } from './auth.js';
+import { issueToken, requireAuth, validateJwtSecret } from './auth.js';
 import { createAIRouter } from './ai-routes.js';
 import { sendLineText } from './line.js';
 import { createLineWebhookRouter } from './line-webhook.js';
@@ -17,6 +17,7 @@ import { currentSession, resourceAccess, leadScope, isSuperAdmin, messageScopeSq
 import { createMemberRouter } from './member-routes.js';
 import { createFollowUpRouter } from './follow-up-routes.js';
 
+validateJwtSecret();
 const app=express(); const logger=pino({level:process.env.LOG_LEVEL||'info'});
 app.use(cors({origin:process.env.WEB_ORIGIN||'http://localhost:3000'}));
 app.use(pinoHttp({logger,serializers:{req:req=>({id:req.id,method:req.method,url:req.url?.split('?')[0]})}}));

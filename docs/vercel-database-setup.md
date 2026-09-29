@@ -11,13 +11,14 @@ Set these variables on the **API** Vercel project for Production:
 | `DATABASE_URL` | The private Supabase transaction pooler URL |
 | `PG_POOL_MAX` | `1` |
 | `PGSSLMODE` | `verify-full` |
+| `JWT_SECRET` | A private random secret with at least 32 bytes; no production fallback |
 | `WEB_ORIGIN` | `https://example-jenosize.vercel.app` |
 
 For certificate-chain errors, download the database's root CA from Supabase Database Settings > SSL Configuration and store the PEM contents in the server-only `PGSSL_CA` variable. Actual newlines and literal `\n` are accepted. Keep certificate verification enabled. Do not use certificate-file query parameters in `DATABASE_URL` together with `PGSSL_CA`.
 
 On the **web** Vercel project, set `NEXT_PUBLIC_API_URL=https://example-jenosize-api.vercel.app`.
 
-Redeploy each project whose environment variables changed. Editing the local `.env` does not update an existing Vercel deployment.
+Redeploy each project whose environment variables changed. Editing the private root `.env` does not update an existing Vercel deployment. Keep the real administrator credentials private and the legacy demo administrator inactive. Demo seeding creates sales accounts only and requires an explicit `DEMO_SEED_PASSWORD`; it does not provision a production administrator. See [security](security.md).
 
 Verify `https://example-jenosize-api.vercel.app/api/health` returns HTTP 200 and `{"status":"ok","database":"ok",...}`, then sign in and load the dashboard and lead list. Health failures log a credential-free database error code: `28P01` indicates authentication failure, `ENOTFOUND` a hostname problem, and `SELF_SIGNED_CERT_IN_CHAIN` an untrusted certificate chain. Use the actual code to choose the fix; a 503 alone does not identify the cause.
 
@@ -29,6 +30,6 @@ The original API failed with `SELF_SIGNED_CERT_IN_CHAIN`. The official Supabase 
 
 After the database password was reset, the direct connection succeeded with verified TLS. The transaction pooler initially returned `28P01` and then succeeded on a bounded reconnect after the credential cache refreshed. The verified local `DATABASE_URL` was updated as a sensitive Production variable on the API project, without printing the credential.
 
-Deployment `dpl_5iwcafqobuCdetZ9u4cwKVpXotNG` was built successfully, checked at its deployment URL, and promoted to `https://example-jenosize-api.vercel.app`. The public domain returned HTTP 200 for health, demo login, current user, dashboard, leads, lead details, companies, and contacts. CORS allowed the web origin. Results included 300 leads, 20 companies, and 200 contacts in the limited contact-list endpoint.
+Deployment `dpl_5iwcafqobuCdetZ9u4cwKVpXotNG` was built successfully, checked at its deployment URL, and promoted to `https://example-jenosize-api.vercel.app`. The public domain returned HTTP 200 for health, authenticated login, current user, dashboard, leads, lead details, companies, and contacts. CORS allowed the web origin. Results included 300 leads, 20 companies, and 200 contacts in the limited contact-list endpoint.
 
-The live web app at `https://example-jenosize.vercel.app` was verified in an isolated browser session: demo sign-in succeeded, Lead management rendered 300 lead rows, and no error banner appeared. The new API's runtime logs had zero error-level application entries or database health failures during the verification window. AI and LINE remain in their existing mock modes; this verification covered database connectivity, authentication, and CRM reads.
+The live web app at `https://example-jenosize.vercel.app` was verified in an isolated browser session: authenticated sign-in succeeded, Lead management rendered 300 lead rows, and no error banner appeared. The new API's runtime logs had zero error-level application entries or database health failures during the verification window. This historical verification covered database connectivity, authentication, and CRM reads with AI and LINE in mock modes. It does not authorize use of the former demo administrator; verify the current account and environment configuration after each security change.

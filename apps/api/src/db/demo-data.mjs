@@ -23,7 +23,7 @@ export const companies = [
 ].map(([name,industry,website,...rest],i)=>({n:i+1,name,industry,website,projects:rest.slice(0,3),budget:rest[3]}));
 export const names=['ณัฐพงษ์','ศิริพร','กิตติพงษ์','พิมพ์ชนก','ธนกฤต','สุภาวดี','ปกรณ์','อรทัย','ชยพล','นภัสสร','วรพล','อัญชลี','ธีรภัทร','กัญญารัตน์','ภัทรพล','ธัญญา','ศุภชัย','รัตนา','จิรายุ','มนัสวี'];
 export const surnames=['รุ่งเรือง','วัฒนกุล','ศิริวัฒนา','เจริญผล','สุขสมบูรณ์','ธนากุล','พิพัฒน์ชัย','แสงทอง','วงศ์สุวรรณ','ปัญญาดี','ตั้งสกุล','บุญประเสริฐ','ชูเกียรติ','วิริยะกุล','อุดมทรัพย์','นาคทอง','สุวรรณรักษ์','พรหมศรี','ประเสริฐสุข','กิจวัฒนา'];
-export const members=names.map((name,i)=>({n:i,name:i===0?'ผู้ดูแลระบบ':`${name} ${surnames[i]}`,email:i===0?'demo@jenosize.local':`sales${String(i).padStart(2,'0')}@jenosize.local`,role:i===0?'super_admin':'sales'}));
+export const members=names.map((name,i)=>({n:i,name:`${name} ${surnames[i]}`,email:`sales${String(i===0?20:i).padStart(2,'0')}@jenosize.local`,role:'sales'}));
 const roles=['ผู้จัดการการตลาด','ผู้จัดการฝ่ายขาย','ผู้จัดการฝ่ายดิจิทัล','ผู้จัดการฝ่าย IT','ผู้จัดการฝ่ายจัดซื้อ'];
 export const contacts=Array.from({length:2000},(_,i)=>({n:i+1,company:i%20+1,first:names[Math.floor(i/20)%20],last:surnames[(Math.floor(i/400)*4+i%4)%20],email:`contact${i+1}@example.test`,title:roles[Math.floor(i/20)%5]}));
 export const leads=Array.from({length:300},(_,i)=>{
@@ -36,8 +36,7 @@ export function demoSql(passwordHash){
  const cj=literal(JSON.stringify(companies)),ctj=literal(JSON.stringify(contacts)),lj=literal(JSON.stringify(leads));
  return `
 INSERT INTO users(name,email,password_hash,role) VALUES ${users} ON CONFLICT(email) DO NOTHING;
-UPDATE users SET role='super_admin',name='ผู้ดูแลระบบ' WHERE email='demo@jenosize.local';
-${members.slice(1).map(u=>`UPDATE users SET name=${literal(u.name)} WHERE email=${literal(u.email)} AND name='Sales User ${String(u.n).padStart(2,'0')}';`).join('\n')}
+${members.map(u=>`UPDATE users SET name=${literal(u.name)} WHERE email=${literal(u.email)} AND role='sales' AND name='Sales User ${String(u.n===0?20:u.n).padStart(2,'0')}';`).join('\n')}
 WITH data AS (SELECT * FROM jsonb_to_recordset(${cj}::jsonb) AS d(n int,name text,industry text,website text))
 UPDATE companies c SET name=d.name,industry=d.industry,website=d.website,notes='ข้อมูลตัวอย่าง: ใช้ชื่อบริษัทจริง ผู้ติดต่อและโอกาสขายสมมติ ไม่ใช่ลูกค้าหรือสัญญาจริง',updated_at=now() FROM data d WHERE c.name='Synthetic Company '||lpad(d.n::text,2,'0');
 INSERT INTO companies(name,industry,website,notes) SELECT name,industry,website,'ข้อมูลตัวอย่าง: ใช้ชื่อบริษัทจริง ผู้ติดต่อและโอกาสขายสมมติ ไม่ใช่ลูกค้าหรือสัญญาจริง' FROM jsonb_to_recordset(${cj}::jsonb) AS d(name text,industry text,website text) ON CONFLICT(name) DO NOTHING;
@@ -50,7 +49,7 @@ next_follow_up=CASE WHEN l.stage IN ('Won','Lost') THEN NULL ELSE now()+((d.n%10
 WITH data AS (SELECT * FROM jsonb_to_recordset(${lj}::jsonb) AS d(n int,company int,contact int,owner int,title text,value numeric,stage text,source text)),co AS (SELECT * FROM jsonb_to_recordset(${cj}::jsonb) AS d(n int,name text))
 INSERT INTO leads(title,company_id,contact_id,owner_id,stage,source,value,probability,next_follow_up,loss_reason)
 SELECT d.title,c.id,ct.id,u.id,d.stage,'Demo · '||d.source,d.value,CASE d.stage WHEN 'New' THEN 15 WHEN 'Qualified' THEN 45 WHEN 'Proposal' THEN 75 WHEN 'Won' THEN 100 ELSE 0 END,CASE WHEN d.stage IN ('Won','Lost') THEN NULL ELSE now()+((d.n%10+1)::text||' days')::interval END,CASE WHEN d.stage='Lost' THEN 'ข้อมูลตัวอย่าง: ลูกค้าเลื่อนงบประมาณไปปีถัดไป' ELSE NULL END
-FROM data d JOIN co ON co.n=d.company JOIN companies c ON c.name=co.name JOIN contacts ct ON ct.email='contact'||d.contact||'@example.test' JOIN users u ON u.email=CASE WHEN d.owner=0 THEN 'demo@jenosize.local' ELSE 'sales'||lpad(d.owner::text,2,'0')||'@jenosize.local' END WHERE NOT EXISTS(SELECT 1 FROM leads l WHERE l.title=d.title);
+FROM data d JOIN co ON co.n=d.company JOIN companies c ON c.name=co.name JOIN contacts ct ON ct.email='contact'||d.contact||'@example.test' JOIN users u ON u.email='sales'||lpad((CASE WHEN d.owner=0 THEN 20 ELSE d.owner END)::text,2,'0')||'@jenosize.local' WHERE NOT EXISTS(SELECT 1 FROM leads l WHERE l.title=d.title);
 INSERT INTO activities(lead_id,actor_id,type,body) SELECT l.id,l.owner_id,'note','[Demo] '||CASE l.stage
 WHEN 'New' THEN 'รับคำขอข้อมูลเบื้องต้น ต้องนัด Discovery เพื่อยืนยันปัญหา ผู้ตัดสินใจ และกรอบงบประมาณ'
 WHEN 'Qualified' THEN 'Discovery: ทีมการตลาดและ IT ต้องการลดการติดตามด้วย Excel ต้องยืนยันงบประมาณ การเชื่อมระบบเดิม และผู้อนุมัติ'
